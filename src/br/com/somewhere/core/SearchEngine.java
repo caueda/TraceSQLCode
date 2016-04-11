@@ -10,58 +10,74 @@ import java.util.regex.Pattern;
 
 public class SearchEngine {
 	private List<ResultBean> listaResultBean = new ArrayList<ResultBean>();
-	private File folder;
-	private FilenameFilter textFilter;	
 	
-	public SearchEngine(File folder, final String[] filterExtension) {
-		this.folder = folder;		
-		this.textFilter = new FilenameFilter() {
+	public SearchEngine() {
+		super();						
+	}
+	
+	public List<ResultBean> getListaResultBean(){
+		return this.listaResultBean;
+	}
+
+	/**
+	 * Set a extension filter for files.
+	 * @param filters
+	 */
+	public FilenameFilter getFilenameFilterExt(final String ... filters) {
+		return new FilenameFilter() {
 			public boolean accept(File dir, String name) {
 				String lowercaseName = name.toLowerCase();
-				for(String ext : filterExtension) {
+				for(String ext : filters) {
+					File test = new File(dir, name);
+					if(test.isDirectory()) return true;
 					if (lowercaseName.endsWith(ext.toLowerCase())) {
 						return true;
 					} 
 				}
 				return false;
 			}
-		};		
+		};
 	}
 	
 	protected void addResult(ResultBean bean) {
 		this.listaResultBean.add(bean);
 	}
 	
-	public static void main(String[] args) {
-		File pasta = new File("C:\\Java\\c8757550_view_mt\\Cepromat_Fiplan\\Implementacao\\banco\\view");
-		SearchEngine engine = new SearchEngine(pasta, new String[] {".sql",".map"});
-		String patternHQL = ".*from.*VO.*";
-		String patternSearch = ".*acwtb0541.*";		
-		List<ResultBean> result = engine.search(patternSearch);
-		for(ResultBean bean : result) {
-			if(bean != null)
-				System.out.println(bean.toString());
-		}
-		System.out.println("Finished.");
-	}
+//	public static void main(String[] args) {
+//		File pasta = new File("C:\\Java\\cXXXXXXX_view_xx\\xxxxxxx_Fiplan\\Implementacao\\banco\\view");
+//		SearchEngine engine = new SearchEngine(pasta, new String[] {".sql",".map"});
+//		String patternHQL = ".*from.*VO.*";
+//		String patternSearch = ".*acwtb0541.*";		
+//		List<ResultBean> result = engine.search(patternSearch);
+//		for(ResultBean bean : result) {
+//			if(bean != null)
+//				System.out.println(bean.toString());
+//		}
+//		System.out.println("Finished.");
+//	}
 	
 	protected boolean match(String line, String regex) {
 		return Pattern.matches(regex, line.toLowerCase());		
 	}
 	
-	public List<ResultBean> search(String regex){
-                this.listaResultBean.clear();
-		runThrough(folder, regex);
-		return listaResultBean;
+	public List<ResultBean> search(String pathFile, String[] textFilter, String regex){
+        clearSearch();
+        File folder = new File(pathFile);        
+		runThrough(folder, textFilter, regex);		
+		return new ArrayList<ResultBean>(listaResultBean);
 	}
 	
-	public void runThrough(File folder, String regex) {
-                regex = regex.replace("%", ".*");                
+	public void clearSearch() {
+		this.listaResultBean.clear();
+	}
+		
+	public void runThrough(File folder, String[] textFilter, String regex) {		
+        regex = regex.replace("%", ".*");                
 		if(folder.isDirectory()) {
-			File[] files = folder.listFiles(textFilter);
+			File[] files = folder.listFiles(getFilenameFilterExt(textFilter));
 			for(File f : files) {
 				if(f.isDirectory()) {
-					runThrough(f, regex);
+					runThrough(f, textFilter, regex);
 				} else {
 					BufferedReader br = null;
 					try {
@@ -76,7 +92,7 @@ public class SearchEngine {
 								bean.setPath(f.getAbsolutePath());
 								bean.setLine(String.valueOf(lineNumber));
 								bean.setSnippet(line);
-								addResult(bean);
+								addResult(bean);								
 							}
 						}
 					} catch(Exception e) {						

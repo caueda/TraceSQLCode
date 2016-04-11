@@ -6,23 +6,30 @@
 
 package br.com.somewhere.gui;
 
-import br.com.somewhere.core.ResultBean;
-import br.com.somewhere.core.SearchEngine;
 import java.io.File;
 import java.io.FileInputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
+
+import br.com.somewhere.core.ResultBean;
+import br.com.somewhere.core.SearchEngine;
 import javafx.application.Application;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
+import javafx.scene.Cursor;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.RadioButton;
 import javafx.scene.control.TableColumn;
@@ -43,18 +50,40 @@ public class TraceSQLCode extends Application {
     private RadioButton btnRadioRR = new RadioButton();
     private RadioButton btnRadioCBA = new RadioButton();
     private ToggleGroup radioGroup = new ToggleGroup();
-    private Button btn = new Button();
-    TextField textProcurar = new TextField();
-    private TableView table;
     
-    private Map<ENGINE, SearchEngine> engines = new HashMap<ENGINE, SearchEngine>();
+    private CheckBox checkVO = new CheckBox("VO");    
+    private CheckBox checkIntegracoes = new CheckBox("Integrações (WS)");
+    private CheckBox checkContabilidade = new CheckBox("Contabilidade");
+    private CheckBox checkContratos = new CheckBox("Contratos");
+    private CheckBox checkDocumentos = new CheckBox("Documentos");
+    private CheckBox checkGestaoAp = new CheckBox("Gestão Aplicativos");
+    private CheckBox checkPlanejamento = new CheckBox("Planejamento");
+    private CheckBox checkPPA = new CheckBox("PPA");
+    private CheckBox checkPTA = new CheckBox("PTA");
+    private CheckBox checkProgramacao = new CheckBox("Prog. Financeira");
+    private CheckBox checkPTAGerencial = new CheckBox("PTA Gerencial");
+    private CheckBox checkTabelas = new CheckBox("Tabelas");
+    private CheckBox checkRelatorios = new CheckBox("Relatorios");
+    private CheckBox checkRelatoriosLOA = new CheckBox("Relatórios LOA");
+    
+    private Scene scene = null; 
+    
+    private Button btn = new Button();
+    private TextField textProcurar = new TextField();
+    private Properties properties = new Properties();
+    private SearchEngine engine = new SearchEngine();
+    
+    private ObservableList<ResultBean> data = FXCollections.observableArrayList();
+    private TableView<ResultBean> table;
     
     public enum ENGINE {
-        MT("dir.mt.view"), RR("dir.rr.view"), CBA("dir.cba.view");
+        MT("dir.mt.view","dir.mt.java"), RR("dir.rr.view","dir.rr.java"), CBA("dir.cba.view","dir.cba.java");
         String directory;
+        String java;
         
-        ENGINE(String directory){
+        ENGINE(String directory, String java){
             this.directory = directory;
+            this.java = java;
         }
         
         public String toString(){
@@ -62,21 +91,30 @@ public class TraceSQLCode extends Application {
         }
     }    
     
-    private Properties properties = new Properties();
-    
-    private ENGINE getEngineSelected(){
+    private String getViewDirectory(){
         if(btnRadioMT.isSelected()){
-            return ENGINE.MT;
+            return properties.getProperty(ENGINE.MT.directory);
         } else if(btnRadioRR.isSelected()){
-            return ENGINE.RR;
+        	return properties.getProperty(ENGINE.RR.directory);
         } else
-            return ENGINE.CBA;
+        	return properties.getProperty(ENGINE.CBA.directory);
+    }
+    
+    private String getJavaDirectory(){
+        if(btnRadioMT.isSelected()){
+            return properties.getProperty(ENGINE.MT.java);
+        } else if(btnRadioRR.isSelected()){
+        	return properties.getProperty(ENGINE.RR.java);
+        } else
+        	return properties.getProperty(ENGINE.CBA.java);
     }
     
     public TraceSQLCode(){
         FileInputStream fis = null;
+        File jarPath=new File(TraceSQLCode.class.getProtectionDomain().getCodeSource().getLocation().getPath());
+    	String propertiesPath=jarPath.getParentFile().getAbsolutePath();
         try {
-            fis = new FileInputStream("trace.properties");
+            fis = new FileInputStream(propertiesPath + "/trace.properties");
             this.properties.load(fis);
         } catch(Exception e){
         } finally {
@@ -86,37 +124,32 @@ public class TraceSQLCode extends Application {
         }
     }
     
-    private SearchEngine getEngine(ENGINE engine){
-        if(!engines.containsKey(engine)){
-            String directory = properties.getProperty(getEngineSelected().toString());
-            engines.put(engine, new SearchEngine(new File(directory), new String[]{".sql",".map",".java"}));
-        }
-        return engines.get(engine);
-    }
-    
-    protected TableView prepareTable(){
-        TableView table = new TableView();        
-        TableColumn columnLinha = new TableColumn("Linha");
+    @SuppressWarnings("unchecked")
+	protected TableView<ResultBean> prepareTable(){
+        TableView<ResultBean> table = new TableView<ResultBean>();        
+        TableColumn<ResultBean, String> columnLinha = new TableColumn<ResultBean,String>("Linha");
         columnLinha.setCellValueFactory(new PropertyValueFactory<ResultBean,String>("fileNameLine"));
         columnLinha.setMinWidth(224);
-        TableColumn columnSnippet = new TableColumn("CÃ³digo");        
+        TableColumn<ResultBean, String> columnSnippet = new TableColumn<ResultBean,String>("Código");        
         columnSnippet.setCellValueFactory(new PropertyValueFactory<ResultBean,String>("snippet"));
         columnSnippet.setMinWidth(800);                
-        table.getColumns().addAll(columnLinha,columnSnippet);
+        table.getColumns().addAll(columnLinha, columnSnippet);
         return table;
     }
     
     protected ObservableList<ResultBean> prepareTableData(List<ResultBean> lista){
-        ObservableList<ResultBean> resultado = FXCollections.observableArrayList();        
+        ObservableList<ResultBean> resultadoObservableList = FXCollections.observableArrayList();        
         for(ResultBean bean : lista){
-            resultado.add(bean);
+            resultadoObservableList.add(bean);
         }
-        return resultado;
+        return resultadoObservableList;
     }
     
     @Override
     public void start(Stage primaryStage) {
-        final ObservableList<ResultBean> data = FXCollections.observableArrayList();        
+        textProcurar.setMinWidth(450);        
+        disableAllChecks(true);
+        
         table = prepareTable();        
         table.setItems(data);
         
@@ -125,22 +158,110 @@ public class TraceSQLCode extends Application {
         btn.setText("Buscar");
         
         GridPane gridpane = new GridPane();
-        gridpane.setPadding(new Insets(5));
+        gridpane.setPadding(new Insets(8));
         gridpane.setHgap(10);
         gridpane.setVgap(10);
         
+        checkVO.setOnAction(new EventHandler<ActionEvent>() {
+			public void handle(ActionEvent event) {
+				if(checkVO.isSelected()) {
+					if(getJavaDirectory() == null || getJavaDirectory().isEmpty()) {
+						Alert alert = new Alert(Alert.AlertType.ERROR);
+						alert.setTitle("Erro");
+						alert.setHeaderText("Erro na parametrização do programa");
+						alert.setContentText("Não foi configurado o caminho para os fontes Java para o projeto.");
+						alert.showAndWait();
+						checkVO.setSelected(false);
+						disableAllChecks(true);
+						return;
+					}					
+					disableAllChecks(false);
+				} else {
+					disableAllChecks(true);
+				}
+			}
+        });
+        
         btn.setOnAction(new EventHandler<ActionEvent>() {            
-            public void handle(ActionEvent event) {      
-                data.clear();
-                FXCollections.emptyObservableList();
-                if(textProcurar.getText() == null || textProcurar.getText().isEmpty()){
-                    Alert alert = new Alert(Alert.AlertType.WARNING);
-                    alert.setContentText("Ã‰ necessÃ¡rio informar o texto de procura.");                    
-                    alert.showAndWait();
-                    return;
-                }                
-                List<ResultBean> resultado = getEngine(getEngineSelected()).search(textProcurar.getText());
-                table.setItems(prepareTableData(resultado));
+            public void handle(ActionEvent event) {
+            	if(checkVO.isSelected()) {
+            		Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+            		alert.setTitle("Alerta");
+            		alert.setHeaderText("");
+            		alert.setContentText("Ao escanear os arquivos Java a consulta poderá demorar alguns minutos. Deseja continuar ?");
+            		Optional<ButtonType> result = alert.showAndWait();
+            		if(!result.isPresent() || result.get() != ButtonType.OK) {
+            			return;
+            		}
+            	}
+            	Task task = new Task() {
+					@Override
+					protected Object call() throws Exception {
+						//Task - inicio
+		                data.clear();
+		                FXCollections.emptyObservableList();
+		                if(textProcurar.getText() == null || textProcurar.getText().isEmpty()){
+		                    Alert alert = new Alert(Alert.AlertType.WARNING);
+		                    alert.setHeaderText("");
+		                    alert.setContentText("É necessário informar o texto a ser buscado.");                    
+		                    alert.showAndWait();
+		                    return null;
+		                }              
+		                scene.setCursor(Cursor.WAIT);
+		                List<ResultBean> resultado = engine.search(getViewDirectory(),  new String[] {".sql",".map"}, textProcurar.getText());
+		                
+		                Map<String, ResultBean> indexResult = new HashMap<String, ResultBean>();
+		                List<ResultBean> tmpResultado = new ArrayList<ResultBean>();
+		                
+		                if(checkVO.isSelected()) {
+		                	resultado.addAll(engine.search(getJavaDirectory() + "/br/gov/mt/cepromat/fiplan/vo", new String[] {"VO.java"}, textProcurar.getText()));
+		                	for(ResultBean searchMore : resultado) {
+		                		if(indexResult.containsKey(searchMore.getFileName())) continue;
+		                		tmpResultado.add(searchMore);
+		                		String fileName = searchMore.getFileName();
+		                		tmpResultado.addAll(engine.search(getJavaDirectory() + "/br/gov/mt/cepromat/fiplan/integracoes", new String[] {".java"}, ".*" + fileName.substring(0, fileName.indexOf(".")) + ".*"));
+		                		
+		                		if(checkContabilidade.isSelected())
+		                			tmpResultado.addAll(engine.search(getJavaDirectory() + "/br/gov/mt/cepromat/fiplan/negocios/contabilidade", new String[] {".java"}, ".*" + fileName.substring(0, fileName.indexOf(".")) + ".*"));
+		                		if(checkContratos.isSelected())
+		                			tmpResultado.addAll(engine.search(getJavaDirectory() + "/br/gov/mt/cepromat/fiplan/negocios/contratos", new String[] {".java"}, ".*" + fileName.substring(0, fileName.indexOf(".")) + ".*"));
+		                		if(checkDocumentos.isSelected())
+		                			tmpResultado.addAll(engine.search(getJavaDirectory() + "/br/gov/mt/cepromat/fiplan/negocios/documentos", new String[] {".java"}, ".*" + fileName.substring(0, fileName.indexOf(".")) + ".*"));
+		                		if(checkGestaoAp.isSelected())
+		                			tmpResultado.addAll(engine.search(getJavaDirectory() + "/br/gov/mt/cepromat/fiplan/negocios/gestaoaplicativos", new String[] {".java"}, ".*" + fileName.substring(0, fileName.indexOf(".")) + ".*"));
+		                		if(checkPlanejamento.isSelected())
+		                			tmpResultado.addAll(engine.search(getJavaDirectory() + "/br/gov/mt/cepromat/fiplan/negocios/planejamento", new String[] {".java"}, ".*" + fileName.substring(0, fileName.indexOf(".")) + ".*"));
+		                		if(checkPPA.isSelected())
+		                			tmpResultado.addAll(engine.search(getJavaDirectory() + "/br/gov/mt/cepromat/fiplan/negocios/ppa", new String[] {".java"}, ".*" + fileName.substring(0, fileName.indexOf(".")) + ".*"));
+		                		if(checkProgramacao.isSelected())                			
+		                			tmpResultado.addAll(engine.search(getJavaDirectory() + "/br/gov/mt/cepromat/fiplan/negocios/programacaofinanceira", new String[] {".java"}, ".*" + fileName.substring(0, fileName.indexOf(".")) + ".*"));
+		                		if(checkPTA.isSelected())
+		                			tmpResultado.addAll(engine.search(getJavaDirectory() + "/br/gov/mt/cepromat/fiplan/negocios/pta", new String[] {".java"}, ".*" + fileName.substring(0, fileName.indexOf(".")) + ".*"));
+		                		if(checkPTAGerencial.isSelected())
+		                			tmpResultado.addAll(engine.search(getJavaDirectory() + "/br/gov/mt/cepromat/fiplan/negocios/ptagerencial", new String[] {".java"}, ".*" + fileName.substring(0, fileName.indexOf(".")) + ".*"));
+		                		if(checkTabelas.isSelected())
+		                			tmpResultado.addAll(engine.search(getJavaDirectory() + "/br/gov/mt/cepromat/fiplan/negocios/tabelas", new String[] {".java"}, ".*" + fileName.substring(0, fileName.indexOf(".")) + ".*"));
+		                		if(checkRelatorios.isSelected())
+		                			tmpResultado.addAll(engine.search(getJavaDirectory() + "/br/gov/mt/cepromat/fiplan/relatorios", new String[] {".java"}, ".*" + fileName.substring(0, fileName.indexOf(".")) + ".*"));
+		                		if(checkRelatoriosLOA.isSelected())
+		                			tmpResultado.addAll(engine.search(getJavaDirectory() + "/br/gov/mt/cepromat/fiplan/relatoriosLOA", new String[] {".java"}, ".*" + fileName.substring(0, fileName.indexOf(".")) + ".*"));
+		                		//Esse sempre executa se o checkVO estiver selecionado.
+		                		tmpResultado.addAll(engine.search(getJavaDirectory() + "/br/gov/mt/cepromat/fiplan/vo", new String[] {"VO.java"}, ".*" + fileName.substring(0, fileName.indexOf(".")) + ".*"));
+		                	}
+		                	resultado.clear();
+		                	resultado = tmpResultado;
+		                }
+		                
+		                table.setItems(prepareTableData(resultado));
+		                scene.setCursor(Cursor.DEFAULT);
+						//Task fim
+						return null;
+					}
+            		
+            	};
+            	Thread th = new Thread(task);
+                th.setDaemon(true);
+                th.start();
             }            
         });
         
@@ -167,15 +288,67 @@ public class TraceSQLCode extends Application {
         gridpane.add(btnRadioCBA, 2,1);
         
         //Linha 3
-        gridpane.add(table, 0, 2, 5, 1);        
+        gridpane.add(checkVO, 0,2,2,1);
         
-        Scene scene = new Scene(root, 1024, 400);
+        //Linha 4
+        
+        	GridPane panelCheck = new GridPane();	
+	        panelCheck.setPadding(new Insets(8));
+	        panelCheck.setHgap(10);
+	        panelCheck.setVgap(10);
+	        
+	        panelCheck.add(checkIntegracoes, 0,0,2,1);
+	        panelCheck.add(checkContabilidade, 2,0,2,1);
+	        panelCheck.add(checkContratos, 4,0,2,1);
+	        panelCheck.add(checkDocumentos, 6,0,2,1);
+	        
+	        panelCheck.add(checkGestaoAp, 0,1,2,1);
+	        panelCheck.add(checkPlanejamento, 2,1,2,1);
+	        panelCheck.add(checkPPA, 4,1,2,1);
+	        panelCheck.add(checkPTA, 6,1,2,1);
+	        
+	        panelCheck.add(checkProgramacao, 0,2,2,1);
+	        panelCheck.add(checkPTAGerencial, 2,2,2,1);
+	        panelCheck.add(checkTabelas, 4,2,2,1);
+	        panelCheck.add(checkRelatorios, 6,2,2,1);
+	        
+	        panelCheck.add(checkRelatoriosLOA, 0,3,2,1);
+//	        panelCheck.add(new Label(""), 2,3,2,1);
+//	        panelCheck.add(new Label(""), 4,3,2,1);
+//	        panelCheck.add(new Label(""), 6,3,2,1);
+        
+        gridpane.add(panelCheck, 0, 3, 5, 1);
+        
+        /*
+        private CheckBox  = new CheckBox("Relatórios LOA");
+        */
+        
+        //Linha 5
+        gridpane.add(table, 0, 4, 6, 1);        
+        
+        scene = new Scene(root, 1024, 600);
         
         primaryStage.setTitle("Trace SQL Code");
         primaryStage.setScene(scene);
         primaryStage.show();
     }
 
+    private void disableAllChecks(boolean value) {
+    	checkIntegracoes.setDisable(value);
+    	checkContabilidade.setDisable(value);
+    	checkContratos.setDisable(value);
+    	checkDocumentos.setDisable(value);
+    	checkGestaoAp.setDisable(value);
+    	checkPlanejamento.setDisable(value);
+    	checkPPA.setDisable(value);
+    	checkPTA.setDisable(value);
+    	checkProgramacao.setDisable(value);
+    	checkPTAGerencial.setDisable(value);
+    	checkTabelas.setDisable(value);
+    	checkRelatorios.setDisable(value);
+    	checkRelatoriosLOA.setDisable(value);
+    }
+    
     /**
      * @param args the command line arguments
      */

@@ -7,24 +7,28 @@ public class ResultBean {
 	private SimpleStringProperty path = new SimpleStringProperty();
 	private SimpleStringProperty line = new SimpleStringProperty();
 	private SimpleStringProperty snippet = new SimpleStringProperty();
-        private SimpleStringProperty fileNameLine = new SimpleStringProperty();
-	
+	private SimpleStringProperty fileNameLine = new SimpleStringProperty();
+
 	public ResultBean() {
 		super();
 	}
-        
-        public String getFileNameLine(){
-            return this.fileName.get() + ":" + this.line.get();
-        }
-        
-        public ResultBean(String fileName, String path, String line, String snippet) {
-		super();
-                this.fileName.set(fileName);
-                this.path.set(path);
-                this.line.set(line);
-                this.snippet.set(snippet);
+
+	public void setFileNameLine(String fileNameLine) {
+		this.fileNameLine.set(fileNameLine);
 	}
 	
+	public String getFileNameLine() {
+		return this.fileName.get() + ":" + this.line.get();
+	}
+
+	public ResultBean(String fileName, String path, String line, String snippet) {
+		super();
+		this.fileName.set(fileName);
+		this.path.set(path);
+		this.line.set(line);
+		this.snippet.set(snippet);
+	}
+
 	public String getFileName() {
 		return fileName.get();
 	}
@@ -56,8 +60,8 @@ public class ResultBean {
 	public void setSnippet(String snippet) {
 		this.snippet.set(snippet);
 	}
-	
-        @Override
+
+	@Override
 	public String toString() {
 		return getFileName() + ":" + getLine() + " -> " + getSnippet();
 	}
