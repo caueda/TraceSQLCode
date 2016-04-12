@@ -148,6 +148,21 @@ public class TraceSQLCode extends Application {
         return resultadoObservableList;
     }
     
+    protected String getTextToSearch() {
+    	if(btnRadioSim.isSelected()) {
+    		String[] contas = textProcurar.getText().split(",");
+    		StringBuilder contasRegex = new StringBuilder();
+    		for(int i=0; i<contas.length; i++) {    			
+    			contasRegex.append(".*" + contas[i].trim().replace(".", "\\.") + ".*");    				
+    			if(i+1 < contas.length) {
+    				contasRegex.append("|");
+    			}
+    		}
+    		return contasRegex.toString();
+    	} else 
+    		return textProcurar.getText().trim();
+    }
+    
     @Override
     public void start(Stage primaryStage) {
         textProcurar.setMinWidth(450);        
@@ -211,13 +226,14 @@ public class TraceSQLCode extends Application {
 		                    return null;
 		                }              
 		                scene.setCursor(Cursor.WAIT);
-		                List<ResultBean> resultado = engine.search(getViewDirectory(),  new String[] {".sql",".map"}, textProcurar.getText());
+		                String toSearch = getTextToSearch();
+		                List<ResultBean> resultado = engine.search(getViewDirectory(),  new String[] {".sql",".map"}, toSearch);
 		                
 		                Map<String, ResultBean> indexResult = new HashMap<String, ResultBean>();
 		                List<ResultBean> tmpResultado = new ArrayList<ResultBean>();
 		                
 		                if(checkVO.isSelected()) {
-		                	resultado.addAll(engine.search(getJavaDirectory() + "/br/gov/mt/cepromat/fiplan/vo", new String[] {"VO.java"}, textProcurar.getText()));
+		                	resultado.addAll(engine.search(getJavaDirectory() + "/br/gov/mt/cepromat/fiplan/vo", new String[] {"VO.java"}, toSearch));
 		                	for(ResultBean searchMore : resultado) {
 		                		if(indexResult.containsKey(searchMore.getFileName())) continue;
 		                		tmpResultado.add(searchMore);
