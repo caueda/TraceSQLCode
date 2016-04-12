@@ -366,7 +366,7 @@ public class TraceSQLCode extends Application {
         
         scene = new Scene(root, 1024, 600);
         
-        primaryStage.setTitle("Trace SQL Code");
+        primaryStage.setTitle("Rastreia \"padrões\" no código das Views (.sql) e quais classe(s) Java a(s) utiliza(m)");
         primaryStage.setScene(scene);
         primaryStage.show();
     }
