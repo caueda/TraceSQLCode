@@ -66,6 +66,9 @@ public class TraceSQLCode extends Application {
     private CheckBox checkRelatorios = new CheckBox("Relatorios");
     private CheckBox checkRelatoriosLOA = new CheckBox("Relatórios LOA");
     
+    private RadioButton btnRadioSim = new RadioButton("Sim");
+    private RadioButton btnRadioNao = new RadioButton("Não");
+    
     private Scene scene = null; 
     
     private Button btn = new Button();
@@ -270,7 +273,22 @@ public class TraceSQLCode extends Application {
         //Linha 1
         gridpane.add(labelProcura, 0, 0);
         gridpane.add(textProcurar, 1, 0, 3, 1);
-        gridpane.add(btn, 4, 0);            
+        gridpane.add(btn, 4, 0); 
+        
+        GridPane contacontabilpane = new GridPane();
+        contacontabilpane.setPadding(new Insets(6));
+        contacontabilpane.setHgap(10);
+        contacontabilpane.setVgap(10);
+        Label labelContacontabil = new Label("Conta Contábil");
+        ToggleGroup groupConta = new ToggleGroup();
+        contacontabilpane.add(labelContacontabil, 0, 0, 4, 1);
+        btnRadioSim.setToggleGroup(groupConta);
+        btnRadioNao.setToggleGroup(groupConta);
+        btnRadioNao.setSelected(true);
+        contacontabilpane.add(btnRadioSim, 0, 1, 2, 1);
+        contacontabilpane.add(btnRadioNao, 3, 1, 2, 1);
+        
+        gridpane.add(contacontabilpane, 5, 0, 3, 1);
         
         //Linha 2        
         btnRadioMT.setText("MT");
