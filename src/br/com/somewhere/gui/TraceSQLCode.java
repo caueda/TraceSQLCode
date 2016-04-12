@@ -34,7 +34,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.RadioButton;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
-import javafx.scene.control.TextField;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.GridPane;
@@ -72,7 +72,7 @@ public class TraceSQLCode extends Application {
     private Scene scene = null; 
     
     private Button btn = new Button();
-    private TextField textProcurar = new TextField();
+    private TextArea textProcurar = new TextArea();
     private Properties properties = new Properties();
     private SearchEngine engine = new SearchEngine();
     
@@ -164,8 +164,12 @@ public class TraceSQLCode extends Application {
     }
     
     @Override
-    public void start(Stage primaryStage) {
-        textProcurar.setMinWidth(450);        
+    public void start(Stage primaryStage) {              
+        textProcurar.setPrefRowCount(10);
+        textProcurar.setPrefColumnCount(100);
+        textProcurar.setWrapText(true);
+        textProcurar.setPrefWidth(450);
+        
         disableAllChecks(true);
         
         table = prepareTable();        
