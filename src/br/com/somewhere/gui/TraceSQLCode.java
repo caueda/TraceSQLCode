@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.regex.Pattern;
 
 import br.com.somewhere.core.ResultBean;
 import br.com.somewhere.core.SearchEngine;
@@ -160,7 +161,7 @@ public class TraceSQLCode extends Application {
     		}
     		return contasRegex.toString();
     	} else 
-    		return textProcurar.getText().trim();
+    		return textProcurar.getText().trim().toLowerCase();
     }
     
     @Override
@@ -216,6 +217,18 @@ public class TraceSQLCode extends Application {
             			return;
             		}
             	}
+            	
+            	if(btnRadioSim.isSelected() && !Pattern.matches(".*d*\\.d.*", textProcurar.getText().toLowerCase())) {    			
+        			Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        			alert.setTitle("Alerta");
+        			alert.setHeaderText("");
+        			alert.setContentText("Você está realmente pesquisando Contas Contábeis ? Se sim, clique em OK, senão em Cancelar.");
+        			Optional<ButtonType> result = alert.showAndWait();
+    	    		if(!result.isPresent() || result.get() != ButtonType.OK) {
+    	    			btnRadioNao.setSelected(true);
+    	    		}
+        		}
+            	
             	Task task = new Task() {
 					@Override
 					protected Object call() throws Exception {
