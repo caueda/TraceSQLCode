@@ -9,11 +9,15 @@ package br.com.somewhere.gui;
 import java.io.File;
 import java.io.FileInputStream;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import br.com.somewhere.core.ResultBean;
@@ -141,9 +145,11 @@ public class TraceSQLCode extends Application {
         return table;
     }
     
-    protected ObservableList<ResultBean> prepareTableData(List<ResultBean> lista){
-        ObservableList<ResultBean> resultadoObservableList = FXCollections.observableArrayList();        
-        for(ResultBean bean : lista){
+    protected ObservableList<ResultBean> prepareTableData(Collection<ResultBean> lista){
+        ObservableList<ResultBean> resultadoObservableList = FXCollections.observableArrayList();
+        List<ResultBean> listaOrdenada = new ArrayList<ResultBean>(lista);
+        Collections.sort(listaOrdenada);
+        for(ResultBean bean : listaOrdenada){
             resultadoObservableList.add(bean);
         }
         return resultadoObservableList;
@@ -244,17 +250,18 @@ public class TraceSQLCode extends Application {
 		                }              
 		                scene.setCursor(Cursor.WAIT);
 		                String toSearch = getTextToSearch();
-		                List<ResultBean> resultado = engine.search(getViewDirectory(),  new String[] {".sql",".map"}, toSearch);
+		                Set<ResultBean> resultado = new HashSet<ResultBean>();
+		                resultado.addAll(engine.search(getViewDirectory(),  new String[] {".sql",".map"}, toSearch));
 		                
 		                Map<String, ResultBean> indexResult = new HashMap<String, ResultBean>();
-		                List<ResultBean> tmpResultado = new ArrayList<ResultBean>();
+		                Set<ResultBean> tmpResultado = new HashSet<ResultBean>();
 		                
 		                if(checkVO.isSelected()) {
 		                	resultado.addAll(engine.search(getJavaDirectory() + "/br/gov/mt/cepromat/fiplan/vo", new String[] {"VO.java"}, toSearch));
 		                	for(ResultBean searchMore : resultado) {
 		                		if(indexResult.containsKey(searchMore.getFileName())) continue;
 		                		tmpResultado.add(searchMore);
-		                		String fileName = searchMore.getFileName();
+		                		String fileName = searchMore.getFileName().toLowerCase();
 		                		tmpResultado.addAll(engine.search(getJavaDirectory() + "/br/gov/mt/cepromat/fiplan/integracoes", new String[] {".java"}, ".*" + fileName.substring(0, fileName.indexOf(".")) + ".*"));
 		                		
 		                		if(checkContabilidade.isSelected())
