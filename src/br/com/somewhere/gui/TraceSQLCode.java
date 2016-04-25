@@ -235,7 +235,7 @@ public class TraceSQLCode extends Application {
     	    		}
         		}
             	
-            	Task task = new Task() {
+            	Task<Object> task = new Task<Object>() {
 					@Override
 					protected Object call() throws Exception {
 						//Task - inicio
@@ -252,6 +252,10 @@ public class TraceSQLCode extends Application {
 		                String toSearch = getTextToSearch();
 		                Set<ResultBean> resultado = new HashSet<ResultBean>();
 		                resultado.addAll(engine.search(getViewDirectory(),  new String[] {".sql",".map"}, toSearch));
+		                if(btnRadioSim.isSelected()) {
+		                	resultado.addAll(engine.search(getJavaDirectory() + "/br/gov/mt/cepromat/fiplan/relatorios",  new String[] {".java"}, toSearch));
+		                	resultado.addAll(engine.search(getJavaDirectory() + "/br/gov/mt/cepromat/fiplan/relatoriosLOA",  new String[] {".java"}, toSearch));
+		                }
 		                
 		                Map<String, ResultBean> indexResult = new HashMap<String, ResultBean>();
 		                Set<ResultBean> tmpResultado = new HashSet<ResultBean>();
@@ -262,7 +266,7 @@ public class TraceSQLCode extends Application {
 		                		if(indexResult.containsKey(searchMore.getFileName())) continue;
 		                		tmpResultado.add(searchMore);
 		                		String fileName = searchMore.getFileName().toLowerCase();
-		                		tmpResultado.addAll(engine.search(getJavaDirectory() + "/br/gov/mt/cepromat/fiplan/integracoes", new String[] {".java"}, ".*" + fileName.substring(0, fileName.indexOf(".")) + ".*"));
+		                		tmpResultado.addAll(engine.search(getJavaDirectory() + "/br/gov/mt/cepromat/fiplan/integracoes", new String[] {".java"}, ".*" + fileName.substring(0, fileName.indexOf(".")) + ".*"));                		
 		                		
 		                		if(checkContabilidade.isSelected())
 		                			tmpResultado.addAll(engine.search(getJavaDirectory() + "/br/gov/mt/cepromat/fiplan/negocios/contabilidade", new String[] {".java"}, ".*" + fileName.substring(0, fileName.indexOf(".")) + ".*"));
@@ -284,9 +288,9 @@ public class TraceSQLCode extends Application {
 		                			tmpResultado.addAll(engine.search(getJavaDirectory() + "/br/gov/mt/cepromat/fiplan/negocios/ptagerencial", new String[] {".java"}, ".*" + fileName.substring(0, fileName.indexOf(".")) + ".*"));
 		                		if(checkTabelas.isSelected())
 		                			tmpResultado.addAll(engine.search(getJavaDirectory() + "/br/gov/mt/cepromat/fiplan/negocios/tabelas", new String[] {".java"}, ".*" + fileName.substring(0, fileName.indexOf(".")) + ".*"));
-		                		if(checkRelatorios.isSelected())
+		                		if(checkRelatorios.isSelected() && !btnRadioSim.isSelected())
 		                			tmpResultado.addAll(engine.search(getJavaDirectory() + "/br/gov/mt/cepromat/fiplan/relatorios", new String[] {".java"}, ".*" + fileName.substring(0, fileName.indexOf(".")) + ".*"));
-		                		if(checkRelatoriosLOA.isSelected())
+		                		if(checkRelatoriosLOA.isSelected() && !btnRadioSim.isSelected())
 		                			tmpResultado.addAll(engine.search(getJavaDirectory() + "/br/gov/mt/cepromat/fiplan/relatoriosLOA", new String[] {".java"}, ".*" + fileName.substring(0, fileName.indexOf(".")) + ".*"));
 		                		//Esse sempre executa se o checkVO estiver selecionado.
 		                		tmpResultado.addAll(engine.search(getJavaDirectory() + "/br/gov/mt/cepromat/fiplan/vo", new String[] {"VO.java"}, ".*" + fileName.substring(0, fileName.indexOf(".")) + ".*"));
