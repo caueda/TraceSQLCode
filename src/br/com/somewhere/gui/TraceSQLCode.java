@@ -23,6 +23,9 @@ import java.util.regex.Pattern;
 import br.com.somewhere.core.ResultBean;
 import br.com.somewhere.core.SearchEngine;
 import javafx.application.Application;
+import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
@@ -37,24 +40,33 @@ import javafx.scene.control.ButtonType;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.RadioButton;
+import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableColumn.CellDataFeatures;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
+import javafx.scene.control.Toggle;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.GridPane;
-import javafx.scene.layout.StackPane;
+import javafx.scene.layout.Region;
+import javafx.scene.web.WebEngine;
+import javafx.scene.web.WebView;
 import javafx.stage.Stage;
+import javafx.util.Callback;
 
 /**
  *
  * @author someone
  */
 public class TraceSQLCode extends Application {
+	private static final int WINDOW_WIDTH=800;
+	private static final int WINDOW_HEIGHT=600;
     private RadioButton btnRadioMT = new RadioButton();
     private RadioButton btnRadioRR = new RadioButton();
     private RadioButton btnRadioCBA = new RadioButton();
     private ToggleGroup radioGroup = new ToggleGroup();
+    private ToggleGroup groupConta = new ToggleGroup();
     
     private CheckBox checkVO = new CheckBox("VO");    
     private CheckBox checkIntegracoes = new CheckBox("Integrações (WS)");
@@ -132,15 +144,45 @@ public class TraceSQLCode extends Application {
         }
     }
     
+	private class HTMLCell extends TableCell<ResultBean, String> {		
+		protected void updateItem(String item, boolean empty) {
+			super.updateItem(item, empty);
+			if (!empty) {
+				WebView webView = new WebView();				
+				webView.setMaxWidth(800);
+				webView.setMaxHeight(30);
+				WebEngine engine = webView.getEngine();
+				setGraphic(webView);				
+				engine.loadContent(item);
+			}
+		}
+	}
+    
     @SuppressWarnings("unchecked")
 	protected TableView<ResultBean> prepareTable(){
         TableView<ResultBean> table = new TableView<ResultBean>();        
         TableColumn<ResultBean, String> columnLinha = new TableColumn<ResultBean,String>("Linha");
         columnLinha.setCellValueFactory(new PropertyValueFactory<ResultBean,String>("fileNameLine"));
         columnLinha.setMinWidth(224);
+        
         TableColumn<ResultBean, String> columnSnippet = new TableColumn<ResultBean,String>("Código");        
         columnSnippet.setCellValueFactory(new PropertyValueFactory<ResultBean,String>("snippet"));
-        columnSnippet.setMinWidth(800);                
+//        columnSnippet.setCellFactory(new Callback<TableColumn<ResultBean, String>, TableCell<ResultBean, String>>() {
+//        	@Override
+//        	public TableCell<ResultBean, String> call(TableColumn<ResultBean, String> param) {
+//        		return new HTMLCell();
+//        	}
+//        });
+//        columnSnippet.setCellValueFactory(new Callback<TableColumn.CellDataFeatures<ResultBean, String>, ObservableValue<String>>() {
+//
+//        	@Override
+//        	public ObservableValue<String> call(CellDataFeatures<ResultBean, String> param) {
+//        		return new SimpleObjectProperty<String>(param.getValue().getSnippet());
+//        	}
+//        });
+	    
+        columnSnippet.setMinWidth(800);        
+        
         table.getColumns().addAll(columnLinha, columnSnippet);
         return table;
     }
@@ -157,7 +199,7 @@ public class TraceSQLCode extends Application {
     
     protected String getTextToSearch() {
     	if(btnRadioSim.isSelected()) {
-    		String[] contas = textProcurar.getText().split(",");
+    		String[] contas = textProcurar.getText().split(",");    		
     		StringBuilder contasRegex = new StringBuilder();
     		for(int i=0; i<contas.length; i++) {    			
     			contasRegex.append(".*" + contas[i].trim().replace(".", "\\.") + ".*");    				
@@ -170,28 +212,8 @@ public class TraceSQLCode extends Application {
     		return textProcurar.getText().trim().toLowerCase();
     }
     
-    @Override
-    public void start(Stage primaryStage) {              
-        textProcurar.setPrefRowCount(10);
-        textProcurar.setPrefColumnCount(100);
-        textProcurar.setWrapText(true);
-        textProcurar.setPrefWidth(450);
-        
-        disableAllChecks(true);
-        
-        table = prepareTable();        
-        table.setItems(data);
-        
-        Label labelProcura = new Label("Procurar:");       
-        
-        btn.setText("Buscar");
-        
-        GridPane gridpane = new GridPane();
-        gridpane.setPadding(new Insets(8));
-        gridpane.setHgap(10);
-        gridpane.setVgap(10);
-        
-        checkVO.setOnAction(new EventHandler<ActionEvent>() {
+    private void initComponents() {
+    	   	checkVO.setOnAction(new EventHandler<ActionEvent>() {
 			public void handle(ActionEvent event) {
 				if(checkVO.isSelected()) {
 					if(getJavaDirectory() == null || getJavaDirectory().isEmpty()) {
@@ -210,10 +232,21 @@ public class TraceSQLCode extends Application {
 				}
 			}
         });
-        
-        btn.setOnAction(new EventHandler<ActionEvent>() {            
+    	
+	   	groupConta.selectedToggleProperty().addListener(new ChangeListener<Toggle>() {
+			@Override
+			public void changed(ObservableValue<? extends Toggle> observable, Toggle oldValue, Toggle newValue) {
+				if(btnRadioSim.isSelected()) {
+					setPromptTextProcurar("6.2.1.3.2.01.01.00,6.2.1.3.1,4.2.1");
+  				} else {
+  					setPromptTextProcurar("%iden_contrato%");
+  				}
+			}
+	   	});
+    	
+    	btn.setOnAction(new EventHandler<ActionEvent>() {            
             public void handle(ActionEvent event) {
-            	if(checkVO.isSelected()) {
+            	if(checkVO.isSelected()) {            		
             		Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
             		alert.setTitle("Alerta");
             		alert.setHeaderText("");
@@ -222,7 +255,7 @@ public class TraceSQLCode extends Application {
             		if(!result.isPresent() || result.get() != ButtonType.OK) {
             			return;
             		}
-            	}
+            	} 
             	
             	if(btnRadioSim.isSelected() && !Pattern.matches(".*d*\\.d.*", textProcurar.getText().toLowerCase())) {    			
         			Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
@@ -310,11 +343,40 @@ public class TraceSQLCode extends Application {
                 th.setDaemon(true);
                 th.start();
             }            
-        });
+        });    	
+    }
+    
+    @Override
+    public void start(Stage primaryStage) {
+    	primaryStage.resizableProperty().setValue(Boolean.FALSE);
+        textProcurar.setPrefRowCount(10);
+        textProcurar.setPrefColumnCount(100);
+        textProcurar.setWrapText(true);
+        textProcurar.setPrefWidth(450);        
         
-        StackPane root = new StackPane();        
-        root.getChildren().add(gridpane);
-        //Linha 1
+        disableAllChecks(true);
+        
+        table = prepareTable();        
+        table.setItems(data);
+        
+        Label labelProcura = new Label("Procurar:");       
+        
+        btn.setText("Buscar");
+        
+        GridPane gridpane = new GridPane();
+        gridpane.setPadding(new Insets(8));
+        gridpane.setHgap(10);
+        gridpane.setVgap(10);
+        
+        initComponents();
+        
+//        StackPane root = new StackPane();        
+        
+        gridpane.setPrefSize(WINDOW_WIDTH, WINDOW_HEIGHT); // Default width and height
+        gridpane.setMaxSize(Region.USE_COMPUTED_SIZE, Region.USE_COMPUTED_SIZE);
+        
+//        root.getChildren().add(gridpane);
+        //Linha 1        
         gridpane.add(labelProcura, 0, 0);
         gridpane.add(textProcurar, 1, 0, 3, 1);
         gridpane.add(btn, 4, 0); 
@@ -323,8 +385,7 @@ public class TraceSQLCode extends Application {
         contacontabilpane.setPadding(new Insets(6));
         contacontabilpane.setHgap(10);
         contacontabilpane.setVgap(10);
-        Label labelContacontabil = new Label("Conta Contábil");
-        ToggleGroup groupConta = new ToggleGroup();
+        Label labelContacontabil = new Label("Conta Contábil");        
         contacontabilpane.add(labelContacontabil, 0, 0, 4, 1);
         btnRadioSim.setToggleGroup(groupConta);
         btnRadioNao.setToggleGroup(groupConta);
@@ -385,14 +446,20 @@ public class TraceSQLCode extends Application {
         private CheckBox  = new CheckBox("Relatórios LOA");
         */
         
-        //Linha 5
-        gridpane.add(table, 0, 4, 6, 1);        
+        //Linha 5        
+        gridpane.add(table, 0, 5, 8, 1);        
         
-        scene = new Scene(root, 1024, 600);
+        scene = new Scene(gridpane, WINDOW_WIDTH, WINDOW_HEIGHT);
         
         primaryStage.setTitle("Rastreia \"padrões\" no código das Views (.sql) e quais classe(s) Java a(s) utiliza(m)");
         primaryStage.setScene(scene);
         primaryStage.show();
+    }
+    
+    private void setPromptTextProcurar(String prompt) {
+    	if(textProcurar.getText() == null || textProcurar.getText().isEmpty()) {    		
+			textProcurar.setPromptText(prompt);
+		}
     }
 
     private void disableAllChecks(boolean value) {

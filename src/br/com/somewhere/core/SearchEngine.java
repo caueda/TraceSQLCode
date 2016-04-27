@@ -6,6 +6,7 @@ import java.io.FileReader;
 import java.io.FilenameFilter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class SearchEngine {
@@ -56,8 +57,16 @@ public class SearchEngine {
 //		System.out.println("Finished.");
 //	}
 	
-	protected boolean match(String line, String regex) {
-		return Pattern.matches(regex, line.toLowerCase());		
+	protected String match(String line, String regex) {
+		if(Pattern.matches(regex, line.toLowerCase())) {
+			Pattern pattern = Pattern.compile(regex);
+			Matcher m = pattern.matcher(line.toLowerCase());
+			if(m.find()) {
+//				line = line.toLowerCase().replace(m.group(), "<b>" + m.group() + "</b>");
+				return line;
+			}			
+		} 
+		return null;
 	}
 	
 	public List<ResultBean> search(String pathFile, String[] textFilter, String regex){
@@ -86,12 +95,13 @@ public class SearchEngine {
 						int lineNumber = 0;
 						while((line = br.readLine()) != null) {
 							lineNumber++;
-							if(match(line, regex)) {
+							String result = match(line, regex);
+							if(result != null) {
 								ResultBean bean = new ResultBean();
 								bean.setFileName(f.getName());
 								bean.setPath(f.getAbsolutePath());
 								bean.setLine(String.valueOf(lineNumber));
-								bean.setSnippet(line);
+								bean.setSnippet(result);
 								addResult(bean);								
 							}
 						}
