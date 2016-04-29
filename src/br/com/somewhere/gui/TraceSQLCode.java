@@ -23,7 +23,6 @@ import java.util.regex.Pattern;
 import br.com.somewhere.core.ResultBean;
 import br.com.somewhere.core.SearchEngine;
 import javafx.application.Application;
-import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
@@ -42,7 +41,6 @@ import javafx.scene.control.Label;
 import javafx.scene.control.RadioButton;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableColumn.CellDataFeatures;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.Toggle;
@@ -53,7 +51,6 @@ import javafx.scene.layout.Region;
 import javafx.scene.web.WebEngine;
 import javafx.scene.web.WebView;
 import javafx.stage.Stage;
-import javafx.util.Callback;
 
 /**
  *
@@ -97,13 +94,18 @@ public class TraceSQLCode extends Application {
     private TableView<ResultBean> table;
     
     public enum ENGINE {
-        MT("dir.mt.view","dir.mt.java"), RR("dir.rr.view","dir.rr.java"), CBA("dir.cba.view","dir.cba.java");
+        MT("dir.mt.view","dir.mt.java","dir.mt.pesquisa.sql.config"), 
+        RR("dir.rr.view","dir.rr.java","dir.rr.pesquisa.sql.config"), 
+        CBA("dir.cba.view","dir.cba.java","dir.cba.pesquisa.sql.config");
+    	
         String directory;
         String java;
+        String pesquisaSQLConfig;
         
-        ENGINE(String directory, String java){
+        ENGINE(String directory, String java, String pesquisaSQLConfig){
             this.directory = directory;
             this.java = java;
+            this.pesquisaSQLConfig = pesquisaSQLConfig;
         }
         
         public String toString(){
@@ -127,6 +129,15 @@ public class TraceSQLCode extends Application {
         	return properties.getProperty(ENGINE.RR.java);
         } else
         	return properties.getProperty(ENGINE.CBA.java);
+    }
+    
+    private String getPesquisaSQLConfigDirectory() {
+    	if(btnRadioMT.isSelected()){
+            return properties.getProperty(ENGINE.MT.pesquisaSQLConfig);
+        } else if(btnRadioRR.isSelected()){
+        	return properties.getProperty(ENGINE.RR.pesquisaSQLConfig);
+        } else
+        	return properties.getProperty(ENGINE.CBA.pesquisaSQLConfig);
     }
     
     public TraceSQLCode(){
@@ -325,6 +336,9 @@ public class TraceSQLCode extends Application {
 		                			tmpResultado.addAll(engine.search(getJavaDirectory() + "/br/gov/mt/cepromat/fiplan/relatorios", new String[] {".java"}, ".*" + fileName.substring(0, fileName.indexOf(".")) + ".*"));
 		                		if(checkRelatoriosLOA.isSelected() && !btnRadioSim.isSelected())
 		                			tmpResultado.addAll(engine.search(getJavaDirectory() + "/br/gov/mt/cepromat/fiplan/relatoriosLOA", new String[] {".java"}, ".*" + fileName.substring(0, fileName.indexOf(".")) + ".*"));
+		                		if(checkRelatorios.isSelected() || checkRelatoriosLOA.isSelected()) {
+		                			tmpResultado.addAll(engine.search(getPesquisaSQLConfigDirectory(), new String[] {".xml"}, ".*" + fileName.substring(0, fileName.indexOf(".")) + ".*"));
+		                		}
 		                		//Esse sempre executa se o checkVO estiver selecionado.
 		                		tmpResultado.addAll(engine.search(getJavaDirectory() + "/br/gov/mt/cepromat/fiplan/vo", new String[] {"VO.java"}, ".*" + fileName.substring(0, fileName.indexOf(".")) + ".*"));
 		                	}
